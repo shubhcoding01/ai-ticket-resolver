@@ -1,0 +1,12 @@
+anthropic
+openai
+requests
+python-dotenv
+schedule
+langchain
+langchain-community
+chromadb
+sentence-transformers
+streamlit
+twilio
+pandas
