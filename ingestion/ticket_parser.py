@@ -489,3 +489,4 @@ if __name__ == "__main__":
     print("\nBulk parse test:")
     bulk_results = parse_tickets_bulk(sample_tickets)
     print(f"Parsed {len(bulk_results)} tickets successfully.")
+    
