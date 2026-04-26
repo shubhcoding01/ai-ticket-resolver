@@ -1,0 +1,56 @@
+Printer Troubleshooting Guide — Corporate Printers
+
+This guide covers common printer issues on ICICI Bank
+corporate network printers.
+
+Issue: Printer showing as Offline
+
+Step 1: Check the printer is powered on and has paper loaded.
+Step 2: Open Control Panel, go to Devices and Printers.
+Step 3: Right click your printer and click See what is printing.
+Step 4: In the print queue window click Printer menu at the top.
+Step 5: Uncheck Use Printer Offline if it is checked.
+Step 6: If still offline, right click the printer and Set as default printer.
+Step 7: Restart the Print Spooler service:
+  Open Run dialog with Windows plus R.
+  Type services.msc and press Enter.
+  Find Print Spooler in the list.
+  Right click and select Restart.
+Try printing a test page after the spooler restarts.
+
+Issue: Print Queue Stuck or Documents Not Printing
+
+Step 1: Open Devices and Printers from Control Panel.
+Step 2: Double click the printer to open the print queue.
+Step 3: Select all jobs with Ctrl plus A.
+Step 4: Click Document menu and select Cancel.
+Step 5: If jobs cannot be cancelled, clear the queue manually:
+  Stop the Print Spooler service in services.msc.
+  Open File Explorer and go to C:\Windows\System32\spool\PRINTERS
+  Delete all files in this folder (do not delete the folder itself).
+  Start the Print Spooler service again.
+Try printing again after clearing the queue.
+
+Issue: Printer Driver Missing or Outdated
+
+Raise an IT support ticket requesting a printer driver update.
+Our team will push the latest driver to your machine remotely.
+Specify the printer model name in your ticket for faster resolution.
+
+Issue: Cannot Find Network Printer
+
+Step 1: Make sure you are connected to the office network or VPN.
+Step 2: Open Run dialog and type \\printserver01 and press Enter.
+Step 3: You will see all available network printers.
+Step 4: Right click the printer you need and select Connect.
+Step 5: The printer will install automatically.
+
+Issue: Paper Jam
+
+Step 1: Turn off the printer completely.
+Step 2: Open all paper trays and doors to locate jammed paper.
+Step 3: Gently pull the jammed paper out in the direction it travels.
+Never pull paper backwards as this damages the rollers.
+Step 4: Remove any torn paper pieces completely.
+Step 5: Close all doors and turn the printer back on.
+If the jam error persists after clearing, contact IT support.

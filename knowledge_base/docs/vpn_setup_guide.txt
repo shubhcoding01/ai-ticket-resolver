@@ -1,0 +1,43 @@
+VPN Connection Guide — Cisco AnyConnect
+
+This guide explains how to connect to the company VPN using
+Cisco AnyConnect on Windows 10 and Windows 11.
+
+Step 1 — Open Cisco AnyConnect
+Open the Start menu and search for Cisco AnyConnect.
+Click on the Cisco AnyConnect Secure Mobility Client icon.
+If AnyConnect is not installed, contact IT support to install it.
+
+Step 2 — Enter VPN Server Address
+In the connection box enter: vpn.icici.com
+Click the Connect button.
+
+Step 3 — Enter Your Credentials
+Username: Enter your Windows domain username (same as your laptop login).
+Password: Enter your current Windows password.
+Click OK to connect.
+
+Step 4 — Verify Connection
+A green lock icon will appear in the taskbar when connected.
+You can now access all company network resources and shared drives.
+
+Troubleshooting VPN Issues
+
+Issue: Connection timed out
+Solution: Check your internet connection first. Try disconnecting and reconnecting.
+If the issue persists, restart the Cisco AnyConnect service:
+Open Task Manager, go to Services tab, find vpnagent, right click and restart.
+
+Issue: Invalid credentials error
+Solution: Make sure your Windows password has not expired.
+Try logging into your laptop first to confirm your password is correct.
+If your password has expired, contact IT support for a reset.
+
+Issue: VPN connects but cannot access network drives
+Solution: After connecting to VPN, open File Explorer and type
+\fileserver01 in the address bar to access shared drives.
+If this fails, disconnect and reconnect to VPN and try again.
+
+Issue: AnyConnect not installed
+Solution: Raise a ticket with IT support requesting Cisco AnyConnect installation.
+Our team will push it to your machine remotely within 2 hours.

@@ -1,0 +1,67 @@
+Microsoft Outlook Troubleshooting Guide
+
+This guide covers common Outlook and email issues on ICICI Bank
+corporate laptops.
+
+Issue: Outlook Not Opening or Crashing on Startup
+
+Step 1: Close Outlook completely including from the system tray.
+Step 2: Open Run dialog with Windows plus R.
+Step 3: Type outlook.exe /safe and press Enter.
+This opens Outlook in Safe Mode without add-ins.
+If Outlook opens in Safe Mode, an add-in is causing the crash.
+Go to File, Options, Add-ins and disable all add-ins.
+Restart Outlook normally and re-enable add-ins one by one to identify the problem.
+
+Step 4: If Outlook does not open even in Safe Mode, repair Office:
+Go to Control Panel, Programs, Programs and Features.
+Right click Microsoft Office and select Change.
+Select Quick Repair and click Repair.
+
+Issue: Emails Not Sending or Receiving
+
+Step 1: Check your internet connection is working.
+Step 2: Look at the status bar at the bottom of Outlook.
+It should say Connected to Microsoft Exchange.
+If it says Disconnected or Working Offline:
+Click Send/Receive tab and uncheck Work Offline.
+
+Step 3: Check your Outbox folder for stuck emails.
+If emails are stuck in Outbox, delete the stuck email and try sending again.
+
+Step 4: If emails are not arriving, check your Junk Email folder.
+Check with the sender if they received any bounce-back error messages.
+
+Issue: Outlook Very Slow or Freezing
+
+Step 1: Your PST or OST data file may be too large.
+Go to File, Account Settings, Data Files to check the file size.
+If the file is over 10 GB contact IT support to archive old emails.
+
+Step 2: Disable unnecessary add-ins in File, Options, Add-ins.
+
+Step 3: Compact the data file:
+Go to File, Account Settings, Data Files.
+Select your data file and click Settings.
+Click Compact Now and wait for it to finish.
+
+Issue: PST File Corrupt
+
+If Outlook shows an error about a corrupt PST file:
+Do not delete the PST file manually.
+Raise an IT support ticket immediately.
+Our team will run scanpst.exe remotely to repair the file.
+Regular backups of PST files are performed automatically by IT.
+
+Issue: Cannot Connect to Exchange Server
+
+Check you are connected to the office network or VPN.
+If working from home, ensure VPN is connected before opening Outlook.
+Restart Outlook after connecting to VPN.
+If the issue persists after connecting to VPN, contact IT support.
+
+Outlook Best Practices
+Keep your Inbox organized by creating folders for different projects.
+Empty your Deleted Items and Junk Email folders regularly.
+Archive emails older than 6 months to keep mailbox size manageable.
+Never store sensitive passwords or confidential data in email.

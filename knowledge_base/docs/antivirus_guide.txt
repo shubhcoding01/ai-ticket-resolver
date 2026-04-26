@@ -1,0 +1,51 @@
+Antivirus Troubleshooting Guide — Windows Defender and Symantec
+
+This guide covers common antivirus issues and how to resolve them
+on ICICI Bank corporate laptops and desktops.
+
+Windows Defender Issues
+
+Issue: Real-time protection is turned off
+Solution: Open Windows Security from the Start menu.
+Click Virus and threat protection.
+Under Virus and threat protection settings click Manage settings.
+Toggle Real-time protection to On.
+If it keeps turning off automatically, your machine may have a conflicting
+antivirus program. Contact IT support.
+
+Issue: Windows Defender definitions are out of date
+Solution: Open Windows Security and click Virus and threat protection.
+Click Check for updates under Virus and threat protection updates.
+Click Check for updates button.
+Allow the update to complete. This may take 5 to 10 minutes.
+If updates fail, restart your computer and try again.
+
+Issue: Windows Defender scan failed or stuck
+Solution: Open Task Manager and end the MsMpEng process.
+Wait 30 seconds then open Windows Security and start a new quick scan.
+If scans continue to fail, contact IT support to run a remote repair.
+
+Symantec Endpoint Protection Issues
+
+Issue: Symantec showing red warning icon
+Solution: Right click the Symantec icon in the taskbar.
+Select Open Symantec Endpoint Protection.
+Click LiveUpdate to download the latest definitions.
+Wait for the update to complete then verify the icon turns green.
+
+Issue: Symantec LiveUpdate fails repeatedly
+Solution: This is often caused by proxy or network issues.
+Contact IT support who will push a manual definition update
+remotely to your machine.
+
+Issue: Symantec scan detected a threat
+Solution: Do not open or delete the file manually.
+Let Symantec quarantine it automatically.
+Contact IT support immediately with the threat name shown.
+Do not connect USB drives or external devices to your machine.
+
+General Antivirus Best Practices
+Never disable antivirus protection even temporarily.
+Do not click on email attachments from unknown senders.
+Report suspicious files or popups to IT support immediately.
+Keep your operating system and antivirus up to date at all times.
