@@ -1,0 +1,32 @@
+{
+  "antivirus_guide.txt": {
+    "hash": "caeac4fec12ca7a319184020a57b9a39",
+    "indexed_at": "2026-04-28 14:11:33",
+    "chunk_count": 6,
+    "file_size": 2192
+  },
+  "outlook_guide.txt": {
+    "hash": "1dcc1814f3729a42df9aa6a2ec3b2319",
+    "indexed_at": "2026-04-28 14:11:35",
+    "chunk_count": 9,
+    "file_size": 2698
+  },
+  "password_reset_guide.txt": {
+    "hash": "f62f95521d63440e75950576110ac162",
+    "indexed_at": "2026-04-28 14:11:36",
+    "chunk_count": 6,
+    "file_size": 2044
+  },
+  "printer_guide.txt": {
+    "hash": "56b741b29bc293eaee633caf10df44a3",
+    "indexed_at": "2026-04-28 14:11:37",
+    "chunk_count": 5,
+    "file_size": 2418
+  },
+  "vpn_setup_guide.txt": {
+    "hash": "72a31570aab04cf5ef590535dc0d586f",
+    "indexed_at": "2026-04-28 14:11:38",
+    "chunk_count": 6,
+    "file_size": 1769
+  }
+}
