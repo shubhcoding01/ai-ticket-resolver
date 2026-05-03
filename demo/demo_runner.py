@@ -539,9 +539,20 @@ def run_demo() -> None:
     initialize_database()
     print("Database ready.\n")
 
+    # print("Step 2/4 — Setting up knowledge base...")
+    # create_sample_docs()
+    # build_index(force_rebuild=False)
+    # kb_ok = is_kb_available()
+    # print(f"Knowledge base: {'READY' if kb_ok else 'NOT INDEXED'}\n")
+
     print("Step 2/4 — Setting up knowledge base...")
     create_sample_docs()
     build_index(force_rebuild=False)
+
+    import knowledge_base.kb_search as _kb_mod
+    _kb_mod._collection = None
+    _kb_mod._chroma_client = None
+
     kb_ok = is_kb_available()
     print(f"Knowledge base: {'READY' if kb_ok else 'NOT INDEXED'}\n")
 
