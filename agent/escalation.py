@@ -1,7 +1,342 @@
+# import os
+# import logging
+# from datetime   import datetime
+# from dotenv     import load_dotenv
+
+# from ingestion.freshdesk_client import (
+#     update_ticket_status,
+#     add_internal_note,
+#     assign_ticket_to_agent,
+#     add_tag_to_ticket,
+#     set_ticket_priority,
+#     add_public_reply,
+# )
+# from agent.notifier import notify_engineer
+
+# load_dotenv()
+
+# log = logging.getLogger(__name__)
+
+# ESCALATION_AGENT_ID    = int(os.getenv("ESCALATION_AGENT_ID",    0))
+# ESCALATION_GROUP_ID    = int(os.getenv("ESCALATION_GROUP_ID",    0))
+# ENGINEER_EMAIL         = os.getenv("ENGINEER_EMAIL",         "")
+# COMPANY_NAME           = os.getenv("COMPANY_NAME",           "ICICI Bank")
+
+
+# def escalate_ticket(
+#     ticket_id : int,
+#     note      : str,
+#     agent_id  : int = None,
+# ) -> bool:
+#     """
+#     Escalate a ticket to the engineer queue.
+#     Updates status to pending, adds internal note,
+#     assigns to escalation agent if configured.
+
+#     Args:
+#         ticket_id : Freshdesk ticket ID
+#         note      : Reason for escalation
+#         agent_id  : Optional specific agent ID to assign to
+
+#     Returns:
+#         True if escalation succeeded, False otherwise
+#     """
+#     log.info(f"Escalating ticket #{ticket_id}...")
+
+#     status_ok = update_ticket_status(ticket_id, "pending")
+
+#     if not status_ok:
+#         log.error(f"Failed to update status for ticket #{ticket_id}")
+#         return False
+
+#     timestamp  = datetime.utcnow().strftime("%d %b %Y %I:%M %p UTC")
+#     full_note  = (
+#         f"[AI ESCALATION — {timestamp}]\n"
+#         f"{'─'*40}\n"
+#         f"{note}\n"
+#         f"{'─'*40}\n"
+#         f"This ticket was processed by the AI Ticket Resolver system\n"
+#         f"and requires manual engineer review."
+#     )
+
+#     add_internal_note(ticket_id, full_note)
+
+#     target_agent = agent_id or ESCALATION_AGENT_ID
+#     if target_agent:
+#         assigned = assign_ticket_to_agent(ticket_id, target_agent)
+#         if assigned:
+#             log.info(f"Ticket #{ticket_id} assigned to agent #{target_agent}.")
+#         else:
+#             log.warning(f"Could not assign ticket #{ticket_id} to agent #{target_agent}.")
+
+#     add_tag_to_ticket(ticket_id, ["ai-escalated", "needs-engineer"])
+
+#     log.info(f"Ticket #{ticket_id} escalated successfully.")
+#     return True
+
+
+# def escalate_with_full_details(
+#     ticket        : dict,
+#     classification: dict,
+#     reason        : str,
+# ) -> bool:
+#     """
+#     Full escalation with engineer email notification.
+#     Sends a detailed email to the engineer with AI summary,
+#     ticket details, requester info, and suggested action.
+
+#     Args:
+#         ticket         : Parsed ticket dict from ticket_parser.py
+#         classification : Classification dict from ai_classifier.py
+#         reason         : Why this ticket is being escalated
+
+#     Returns:
+#         True if escalation and notification succeeded
+#     """
+#     ticket_id        = ticket.get("id", 0)
+#     subject          = ticket.get("subject", "")
+#     requester_name   = ticket.get("requester_name", "Unknown")
+#     requester_email  = ticket.get("requester_email", "")
+#     machine_name     = ticket.get("machine_name", "UNKNOWN")
+#     description      = ticket.get("description", "")
+#     category         = classification.get("category", "other")
+#     priority         = classification.get("priority", "medium")
+#     suggested_action = classification.get("suggested_action", "Manual review required.")
+#     confidence       = classification.get("confidence", "low")
+
+#     log.info(f"Full escalation for ticket #{ticket_id}...")
+
+#     basic_ok = escalate_ticket(
+#         ticket_id = ticket_id,
+#         note      = reason,
+#     )
+
+#     if ENGINEER_EMAIL:
+#         ai_summary = _build_ai_summary(
+#             description      = description,
+#             category         = category,
+#             confidence       = confidence,
+#             reason           = reason,
+#             suggested_action = suggested_action,
+#         )
+
+#         notify_engineer(
+#             engineer_email   = ENGINEER_EMAIL,
+#             ticket_id        = ticket_id,
+#             subject          = subject,
+#             category         = category,
+#             priority         = priority,
+#             ai_summary       = ai_summary,
+#             requester_name   = requester_name,
+#             requester_email  = requester_email,
+#             machine_name     = machine_name,
+#             suggested_action = suggested_action,
+#         )
+#     else:
+#         log.warning(
+#             "ENGINEER_EMAIL not set in .env — "
+#             "engineer notification email not sent."
+#         )
+
+#     return basic_ok
+
+
+# def escalate_high_priority(
+#     ticket        : dict,
+#     classification: dict,
+# ) -> bool:
+#     """
+#     Special escalation path for HIGH and URGENT priority tickets.
+#     Sets priority in Freshdesk to urgent, adds urgent tag,
+#     and notifies engineer immediately.
+
+#     Args:
+#         ticket         : Parsed ticket dict
+#         classification : Classification dict
+
+#     Returns:
+#         True if escalation succeeded
+#     """
+#     ticket_id = ticket.get("id", 0)
+#     priority  = classification.get("priority", "medium")
+
+#     log.warning(
+#         f"HIGH PRIORITY escalation for ticket #{ticket_id} "
+#         f"(priority: {priority})"
+#     )
+
+#     if priority in ["high", "urgent"]:
+#         set_ticket_priority(ticket_id, "urgent")
+#         add_tag_to_ticket(ticket_id, ["urgent", "high-priority", "immediate-action"])
+
+#     reason = (
+#         f"HIGH PRIORITY TICKET — Immediate action required.\n"
+#         f"Priority : {priority.upper()}\n"
+#         f"Category : {classification.get('category', 'other')}\n"
+#         f"Action   : {classification.get('suggested_action', '')}"
+#     )
+
+#     return escalate_with_full_details(
+#         ticket         = ticket,
+#         classification = classification,
+#         reason         = reason,
+#     )
+
+
+# def escalate_after_business_hours(ticket: dict, classification: dict) -> bool:
+#     """
+#     Escalation for tickets raised outside business hours.
+#     Adds a note that ticket will be reviewed next business day
+#     and sends user an acknowledgement.
+
+#     Args:
+#         ticket         : Parsed ticket dict
+#         classification : Classification dict
+
+#     Returns:
+#         True if escalation succeeded
+#     """
+#     ticket_id      = ticket.get("id", 0)
+#     requester_email = ticket.get("requester_email", "")
+#     requester_name  = ticket.get("requester_name", "User")
+#     subject         = ticket.get("subject", "")
+
+#     log.info(f"After-hours escalation for ticket #{ticket_id}.")
+
+#     reason = (
+#         "Ticket received outside business hours (9AM–6PM IST).\n"
+#         "Will be reviewed by engineer on next business day.\n"
+#         f"Category : {classification.get('category', 'other')}\n"
+#         f"Suggested: {classification.get('suggested_action', '')}"
+#     )
+
+#     escalate_ticket(ticket_id=ticket_id, note=reason)
+
+#     add_tag_to_ticket(ticket_id, ["after-hours", "next-business-day"])
+
+#     if requester_email:
+#         from agent.notifier import notify_user
+#         notify_user(
+#             email      = requester_email,
+#             ticket_id  = ticket_id,
+#             subject    = subject,
+#             message    = (
+#                 f"Dear {requester_name},\n\n"
+#                 f"Thank you for raising a support ticket.\n\n"
+#                 f"Your ticket #{ticket_id} has been received outside "
+#                 f"our business hours (9AM – 6PM IST, Monday to Friday).\n\n"
+#                 f"Our support team will review and respond to your ticket "
+#                 f"on the next business day.\n\n"
+#                 f"If this is an emergency, please call the IT helpdesk:\n"
+#                 f"Phone: 1800-XXX-XXXX\n\n"
+#                 f"Thank you for your patience.\n\n"
+#                 f"IT Support Team\n{COMPANY_NAME}"
+#             ),
+#             notif_type = "escalated",
+#         )
+
+#     return True
+
+
+# def _build_ai_summary(
+#     description     : str,
+#     category        : str,
+#     confidence      : str,
+#     reason          : str,
+#     suggested_action: str,
+# ) -> str:
+#     """
+#     Build a clear AI analysis summary for the engineer email.
+
+#     Args:
+#         description      : Original ticket description
+#         category         : Classified category
+#         confidence       : Classifier confidence level
+#         reason           : Why ticket was escalated
+#         suggested_action : What AI recommends
+
+#     Returns:
+#         Formatted summary string
+#     """
+#     short_desc = description[:300] + "..." if len(description) > 300 else description
+
+#     summary = (
+#         f"AI CLASSIFICATION SUMMARY\n"
+#         f"{'─'*40}\n"
+#         f"Category         : {category.replace('_', ' ').title()}\n"
+#         f"Confidence       : {confidence.upper()}\n"
+#         f"Suggested Action : {suggested_action}\n\n"
+#         f"ESCALATION REASON\n"
+#         f"{'─'*40}\n"
+#         f"{reason}\n\n"
+#         f"ORIGINAL TICKET DESCRIPTION\n"
+#         f"{'─'*40}\n"
+#         f"{short_desc}"
+#     )
+
+#     return summary
+
+
+# if __name__ == "__main__":
+#     logging.basicConfig(
+#         level=logging.INFO,
+#         format="%(asctime)s [%(levelname)s] %(message)s"
+#     )
+
+#     print("\n" + "=" * 60)
+#     print("ESCALATION MODULE TEST")
+#     print("=" * 60 + "\n")
+
+#     sample_ticket = {
+#         "id"              : 2001,
+#         "subject"         : "Laptop screen flickering badly",
+#         "description"     : "My laptop screen has been flickering since morning. Cannot work.",
+#         "requester_name"  : "Rahul Sharma",
+#         "requester_email" : "rahul.sharma@icici.com",
+#         "machine_name"    : "LAPTOP-ICICI-115",
+#     }
+
+#     sample_classification = {
+#         "category"        : "hardware",
+#         "priority"        : "high",
+#         "can_auto_resolve": False,
+#         "suggested_action": "Schedule on-site hardware inspection.",
+#         "confidence"      : "high",
+#     }
+
+#     print("Testing basic escalation...")
+#     result = escalate_ticket(
+#         ticket_id = sample_ticket["id"],
+#         note      = "Hardware issue — cannot be auto-resolved. Needs on-site engineer."
+#     )
+#     print(f"Result: {'SUCCESS' if result else 'FAILED'}\n")
+
+#     print("Testing full escalation with engineer notification...")
+#     result = escalate_with_full_details(
+#         ticket         = sample_ticket,
+#         classification = sample_classification,
+#         reason         = "Hardware issue — physical inspection required.",
+#     )
+#     print(f"Result: {'SUCCESS' if result else 'FAILED'}")
+
+
 import os
 import logging
-from datetime   import datetime
-from dotenv     import load_dotenv
+from datetime import datetime, timezone
+from dotenv   import load_dotenv
+
+load_dotenv("config/.env")
+
+log = logging.getLogger(__name__)
+
+DEMO_MODE          = os.getenv("DEMO_MODE",          "false").strip().lower() == "true"
+DRY_RUN_MODE       = os.getenv("DRY_RUN_MODE",       "false").strip().lower() == "true"
+ESCALATION_AGENT_ID = int(os.getenv("ESCALATION_AGENT_ID", 0))
+ESCALATION_GROUP_ID = int(os.getenv("ESCALATION_GROUP_ID", 0))
+ENGINEER_EMAIL      = os.getenv("ENGINEER_EMAIL",    "")
+COMPANY_NAME        = os.getenv("COMPANY_NAME",      "ICICI Bank")
+SUPPORT_PHONE       = os.getenv("SUPPORT_PHONE",     "1800-XXX-XXXX")
+BUSINESS_HOURS      = os.getenv("BUSINESS_HOURS",    "9AM – 6PM IST, Monday to Friday")
 
 from ingestion.freshdesk_client import (
     update_ticket_status,
@@ -13,14 +348,18 @@ from ingestion.freshdesk_client import (
 )
 from agent.notifier import notify_engineer
 
-load_dotenv()
 
-log = logging.getLogger(__name__)
+def _now() -> str:
+    """
+    Return current UTC time as a formatted string.
+    Uses timezone-aware datetime to avoid deprecation warning.
 
-ESCALATION_AGENT_ID    = int(os.getenv("ESCALATION_AGENT_ID",    0))
-ESCALATION_GROUP_ID    = int(os.getenv("ESCALATION_GROUP_ID",    0))
-ENGINEER_EMAIL         = os.getenv("ENGINEER_EMAIL",         "")
-COMPANY_NAME           = os.getenv("COMPANY_NAME",           "ICICI Bank")
+    Returns:
+        Formatted datetime string e.g. '17 May 2026 10:30 UTC'
+    """
+    return datetime.now(timezone.utc).strftime(
+        "%d %b %Y %H:%M UTC"
+    )
 
 
 def escalate_ticket(
@@ -29,9 +368,9 @@ def escalate_ticket(
     agent_id  : int = None,
 ) -> bool:
     """
-    Escalate a ticket to the engineer queue.
-    Updates status to pending, adds internal note,
-    assigns to escalation agent if configured.
+    Basic escalation — set ticket to pending, add internal
+    note, assign to escalation agent if configured.
+    In demo mode logs the escalation without real API calls.
 
     Args:
         ticket_id : Freshdesk ticket ID
@@ -41,37 +380,52 @@ def escalate_ticket(
     Returns:
         True if escalation succeeded, False otherwise
     """
-    log.info(f"Escalating ticket #{ticket_id}...")
+    mode = "[DEMO] " if DEMO_MODE else ""
+    log.info(f"{mode}Escalating ticket #{ticket_id}...")
 
     status_ok = update_ticket_status(ticket_id, "pending")
 
     if not status_ok:
-        log.error(f"Failed to update status for ticket #{ticket_id}")
+        log.error(
+            f"Failed to update status for ticket #{ticket_id}"
+        )
         return False
 
-    timestamp  = datetime.utcnow().strftime("%d %b %Y %I:%M %p UTC")
-    full_note  = (
-        f"[AI ESCALATION — {timestamp}]\n"
-        f"{'─'*40}\n"
+    full_note = (
+        f"[AI ESCALATION — {_now()}]\n"
+        f"{'─' * 40}\n"
         f"{note}\n"
-        f"{'─'*40}\n"
-        f"This ticket was processed by the AI Ticket Resolver system\n"
+        f"{'─' * 40}\n"
+        f"This ticket was processed by the AI Ticket Resolver\n"
         f"and requires manual engineer review."
     )
 
     add_internal_note(ticket_id, full_note)
 
     target_agent = agent_id or ESCALATION_AGENT_ID
-    if target_agent:
-        assigned = assign_ticket_to_agent(ticket_id, target_agent)
+    if target_agent and target_agent != 0:
+        assigned = assign_ticket_to_agent(
+            ticket_id, target_agent
+        )
         if assigned:
-            log.info(f"Ticket #{ticket_id} assigned to agent #{target_agent}.")
+            log.info(
+                f"{mode}Ticket #{ticket_id} assigned "
+                f"to agent #{target_agent}."
+            )
         else:
-            log.warning(f"Could not assign ticket #{ticket_id} to agent #{target_agent}.")
+            log.warning(
+                f"Could not assign ticket #{ticket_id} "
+                f"to agent #{target_agent}."
+            )
 
-    add_tag_to_ticket(ticket_id, ["ai-escalated", "needs-engineer"])
+    add_tag_to_ticket(
+        ticket_id,
+        ["ai-escalated", "needs-engineer"]
+    )
 
-    log.info(f"Ticket #{ticket_id} escalated successfully.")
+    log.info(
+        f"{mode}Ticket #{ticket_id} escalated successfully."
+    )
     return True
 
 
@@ -81,9 +435,10 @@ def escalate_with_full_details(
     reason        : str,
 ) -> bool:
     """
-    Full escalation with engineer email notification.
-    Sends a detailed email to the engineer with AI summary,
-    ticket details, requester info, and suggested action.
+    Full escalation with detailed engineer email notification.
+    Sends the engineer a complete AI summary including ticket
+    details, requester info, classification, and suggested action.
+    In demo mode simulates the escalation without real emails.
 
     Args:
         ticket         : Parsed ticket dict from ticket_parser.py
@@ -91,20 +446,28 @@ def escalate_with_full_details(
         reason         : Why this ticket is being escalated
 
     Returns:
-        True if escalation and notification succeeded
+        True if escalation succeeded
     """
-    ticket_id        = ticket.get("id", 0)
-    subject          = ticket.get("subject", "")
-    requester_name   = ticket.get("requester_name", "Unknown")
+    ticket_id        = ticket.get("id",              0)
+    subject          = ticket.get("subject",          "")
+    requester_name   = ticket.get("requester_name",  "Unknown")
     requester_email  = ticket.get("requester_email", "")
-    machine_name     = ticket.get("machine_name", "UNKNOWN")
-    description      = ticket.get("description", "")
-    category         = classification.get("category", "other")
-    priority         = classification.get("priority", "medium")
-    suggested_action = classification.get("suggested_action", "Manual review required.")
+    machine_name     = ticket.get("machine_name",    "UNKNOWN")
+    description      = ticket.get("description",     "")
+    urgency_level    = ticket.get("urgency_level",   "medium")
+
+    category         = classification.get("category",         "other")
+    priority         = classification.get("priority",         "medium")
+    suggested_action = classification.get(
+        "suggested_action", "Manual review required."
+    )
     confidence       = classification.get("confidence", "low")
 
-    log.info(f"Full escalation for ticket #{ticket_id}...")
+    mode = "[DEMO] " if DEMO_MODE else ""
+    log.info(
+        f"{mode}Full escalation for ticket #{ticket_id} "
+        f"(category: {category}, priority: {priority})..."
+    )
 
     basic_ok = escalate_ticket(
         ticket_id = ticket_id,
@@ -120,22 +483,32 @@ def escalate_with_full_details(
             suggested_action = suggested_action,
         )
 
-        notify_engineer(
-            engineer_email   = ENGINEER_EMAIL,
-            ticket_id        = ticket_id,
-            subject          = subject,
-            category         = category,
-            priority         = priority,
-            ai_summary       = ai_summary,
-            requester_name   = requester_name,
-            requester_email  = requester_email,
-            machine_name     = machine_name,
-            suggested_action = suggested_action,
-        )
+        try:
+            notify_engineer(
+                engineer_email   = ENGINEER_EMAIL,
+                ticket_id        = ticket_id,
+                subject          = subject,
+                category         = category,
+                priority         = priority,
+                ai_summary       = ai_summary,
+                requester_name   = requester_name,
+                requester_email  = requester_email,
+                machine_name     = machine_name,
+                suggested_action = suggested_action,
+            )
+            log.info(
+                f"{mode}Engineer notification sent to "
+                f"{ENGINEER_EMAIL} for ticket #{ticket_id}."
+            )
+        except Exception as e:
+            log.warning(
+                f"Engineer notification failed for "
+                f"ticket #{ticket_id}: {e}"
+            )
     else:
         log.warning(
-            "ENGINEER_EMAIL not set in .env — "
-            "engineer notification email not sent."
+            "ENGINEER_EMAIL not set in config/.env — "
+            "engineer notification not sent."
         )
 
     return basic_ok
@@ -146,9 +519,10 @@ def escalate_high_priority(
     classification: dict,
 ) -> bool:
     """
-    Special escalation path for HIGH and URGENT priority tickets.
-    Sets priority in Freshdesk to urgent, adds urgent tag,
-    and notifies engineer immediately.
+    Special escalation for HIGH and URGENT priority tickets.
+    Sets Freshdesk priority to urgent, adds urgent tags,
+    and notifies engineer immediately with full details.
+    In demo mode simulates without real API calls.
 
     Args:
         ticket         : Parsed ticket dict
@@ -159,21 +533,30 @@ def escalate_high_priority(
     """
     ticket_id = ticket.get("id", 0)
     priority  = classification.get("priority", "medium")
+    category  = classification.get("category", "other")
 
+    mode = "[DEMO] " if DEMO_MODE else ""
     log.warning(
-        f"HIGH PRIORITY escalation for ticket #{ticket_id} "
-        f"(priority: {priority})"
+        f"{mode}HIGH PRIORITY escalation for "
+        f"ticket #{ticket_id} "
+        f"(priority: {priority}, category: {category})"
     )
 
     if priority in ["high", "urgent"]:
         set_ticket_priority(ticket_id, "urgent")
-        add_tag_to_ticket(ticket_id, ["urgent", "high-priority", "immediate-action"])
+        add_tag_to_ticket(
+            ticket_id,
+            ["urgent", "high-priority", "immediate-action"]
+        )
 
     reason = (
-        f"HIGH PRIORITY TICKET — Immediate action required.\n"
+        f"HIGH PRIORITY — Immediate action required.\n"
         f"Priority : {priority.upper()}\n"
-        f"Category : {classification.get('category', 'other')}\n"
-        f"Action   : {classification.get('suggested_action', '')}"
+        f"Category : {category}\n"
+        f"Action   : "
+        f"{classification.get('suggested_action', '')}\n"
+        f"Urgency  : "
+        f"{ticket.get('urgency_level', 'unknown')}"
     )
 
     return escalate_with_full_details(
@@ -183,11 +566,16 @@ def escalate_high_priority(
     )
 
 
-def escalate_after_business_hours(ticket: dict, classification: dict) -> bool:
+def escalate_after_business_hours(
+    ticket        : dict,
+    classification: dict,
+) -> bool:
     """
-    Escalation for tickets raised outside business hours.
-    Adds a note that ticket will be reviewed next business day
-    and sends user an acknowledgement.
+    Escalation for tickets received outside business hours.
+    Adds an internal note, tags ticket as after-hours, and
+    sends the user an acknowledgement message telling them
+    the ticket will be reviewed next business day.
+    In demo mode logs the escalation without real emails.
 
     Args:
         ticket         : Parsed ticket dict
@@ -196,46 +584,148 @@ def escalate_after_business_hours(ticket: dict, classification: dict) -> bool:
     Returns:
         True if escalation succeeded
     """
-    ticket_id      = ticket.get("id", 0)
+    ticket_id       = ticket.get("id",              0)
     requester_email = ticket.get("requester_email", "")
-    requester_name  = ticket.get("requester_name", "User")
-    subject         = ticket.get("subject", "")
+    requester_name  = ticket.get("requester_name",  "User")
+    subject         = ticket.get("subject",         "")
+    category        = classification.get("category", "other")
+    priority        = classification.get("priority", "medium")
+    suggested       = classification.get(
+        "suggested_action", ""
+    )
 
-    log.info(f"After-hours escalation for ticket #{ticket_id}.")
+    mode = "[DEMO] " if DEMO_MODE else ""
+    log.info(
+        f"{mode}After-hours escalation for "
+        f"ticket #{ticket_id}."
+    )
 
     reason = (
-        "Ticket received outside business hours (9AM–6PM IST).\n"
-        "Will be reviewed by engineer on next business day.\n"
-        f"Category : {classification.get('category', 'other')}\n"
-        f"Suggested: {classification.get('suggested_action', '')}"
+        f"Ticket received outside business hours "
+        f"({BUSINESS_HOURS}).\n"
+        f"Will be reviewed by engineer on next business day.\n"
+        f"Category : {category}\n"
+        f"Priority : {priority}\n"
+        f"Suggested: {suggested}"
     )
 
     escalate_ticket(ticket_id=ticket_id, note=reason)
 
-    add_tag_to_ticket(ticket_id, ["after-hours", "next-business-day"])
+    add_tag_to_ticket(
+        ticket_id,
+        ["after-hours", "next-business-day"]
+    )
 
     if requester_email:
-        from agent.notifier import notify_user
-        notify_user(
-            email      = requester_email,
-            ticket_id  = ticket_id,
-            subject    = subject,
-            message    = (
-                f"Dear {requester_name},\n\n"
-                f"Thank you for raising a support ticket.\n\n"
-                f"Your ticket #{ticket_id} has been received outside "
-                f"our business hours (9AM – 6PM IST, Monday to Friday).\n\n"
-                f"Our support team will review and respond to your ticket "
-                f"on the next business day.\n\n"
-                f"If this is an emergency, please call the IT helpdesk:\n"
-                f"Phone: 1800-XXX-XXXX\n\n"
-                f"Thank you for your patience.\n\n"
-                f"IT Support Team\n{COMPANY_NAME}"
-            ),
-            notif_type = "escalated",
-        )
+        try:
+            from agent.notifier import notify_user
+            notif_ok = notify_user(
+                email      = requester_email,
+                ticket_id  = ticket_id,
+                subject    = subject,
+                message    = (
+                    f"Dear {requester_name},\n\n"
+                    f"Thank you for raising a support ticket.\n\n"
+                    f"Your ticket #{ticket_id} ('{subject}') has "
+                    f"been received outside our business hours "
+                    f"({BUSINESS_HOURS}).\n\n"
+                    f"Our support team will review and respond to "
+                    f"your ticket on the next business day.\n\n"
+                    f"If this is an emergency, please call the "
+                    f"IT helpdesk:\n"
+                    f"Phone: {SUPPORT_PHONE}\n\n"
+                    f"Thank you for your patience.\n\n"
+                    f"IT Support Team\n{COMPANY_NAME}"
+                ),
+                notif_type = "escalated",
+            )
+            if notif_ok:
+                log.info(
+                    f"{mode}After-hours acknowledgement "
+                    f"sent to {requester_email}."
+                )
+        except Exception as e:
+            log.warning(
+                f"After-hours notification failed "
+                f"for ticket #{ticket_id}: {e}"
+            )
 
     return True
+
+
+def escalate_with_kb_guide(
+    ticket        : dict,
+    classification: dict,
+    kb_guide      : str,
+    reason        : str,
+) -> bool:
+    """
+    Escalate a ticket and also send the user a KB self-help
+    guide at the same time. Used when auto-resolution fails
+    but the KB has a relevant guide to send.
+
+    Args:
+        ticket         : Parsed ticket dict
+        classification : Classification dict
+        kb_guide       : Self-help guide text to send to user
+        reason         : Why ticket is being escalated
+
+    Returns:
+        True if escalation succeeded
+    """
+    ticket_id       = ticket.get("id",              0)
+    subject         = ticket.get("subject",         "")
+    requester_email = ticket.get("requester_email", "")
+    requester_name  = ticket.get("requester_name",  "User")
+
+    mode = "[DEMO] " if DEMO_MODE else ""
+    log.info(
+        f"{mode}Escalating ticket #{ticket_id} "
+        f"with KB guide..."
+    )
+
+    if requester_email and kb_guide:
+        try:
+            from agent.notifier import notify_user
+            notify_user(
+                email      = requester_email,
+                ticket_id  = ticket_id,
+                subject    = subject,
+                message    = (
+                    f"Dear {requester_name},\n\n"
+                    f"Thank you for contacting IT Support "
+                    f"regarding '{subject}'.\n\n"
+                    f"We found a self-help guide that may help:\n\n"
+                    f"{'─' * 50}\n"
+                    f"{kb_guide}\n"
+                    f"{'─' * 50}\n\n"
+                    f"An engineer will also follow up shortly.\n\n"
+                    f"Thank you,\n"
+                    f"IT Support Team\n{COMPANY_NAME}"
+                ),
+                notif_type = "kb_guide_sent",
+            )
+            log.info(
+                f"{mode}KB guide sent to {requester_email} "
+                f"for ticket #{ticket_id}."
+            )
+        except Exception as e:
+            log.warning(
+                f"KB guide notification failed "
+                f"for ticket #{ticket_id}: {e}"
+            )
+
+    full_reason = (
+        f"{reason}\n"
+        f"KB self-help guide was sent to the user.\n"
+        f"Engineer — please verify issue is resolved."
+    )
+
+    return escalate_with_full_details(
+        ticket         = ticket,
+        classification = classification,
+        reason         = full_reason,
+    )
 
 
 def _build_ai_summary(
@@ -247,6 +737,8 @@ def _build_ai_summary(
 ) -> str:
     """
     Build a clear AI analysis summary for the engineer email.
+    Formats classification results, escalation reason, and
+    a preview of the original ticket description.
 
     Args:
         description      : Original ticket description
@@ -258,19 +750,25 @@ def _build_ai_summary(
     Returns:
         Formatted summary string
     """
-    short_desc = description[:300] + "..." if len(description) > 300 else description
+    short_desc = (
+        description[:300] + "..."
+        if len(description) > 300
+        else description
+    )
 
     summary = (
         f"AI CLASSIFICATION SUMMARY\n"
-        f"{'─'*40}\n"
-        f"Category         : {category.replace('_', ' ').title()}\n"
+        f"{'─' * 40}\n"
+        f"Category         : "
+        f"{category.replace('_', ' ').title()}\n"
         f"Confidence       : {confidence.upper()}\n"
-        f"Suggested Action : {suggested_action}\n\n"
+        f"Suggested Action : {suggested_action}\n"
+        f"Timestamp        : {_now()}\n\n"
         f"ESCALATION REASON\n"
-        f"{'─'*40}\n"
+        f"{'─' * 40}\n"
         f"{reason}\n\n"
         f"ORIGINAL TICKET DESCRIPTION\n"
-        f"{'─'*40}\n"
+        f"{'─' * 40}\n"
         f"{short_desc}"
     )
 
@@ -278,22 +776,40 @@ def _build_ai_summary(
 
 
 if __name__ == "__main__":
+    import sys
+    sys.path.insert(
+        0,
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s"
+        level  = logging.INFO,
+        format = "%(asctime)s [%(levelname)s] %(message)s",
     )
 
     print("\n" + "=" * 60)
     print("ESCALATION MODULE TEST")
-    print("=" * 60 + "\n")
+    print("=" * 60)
+    print(
+        f"  Mode         : "
+        f"{'DEMO' if DEMO_MODE else 'LIVE'}"
+    )
+    print(f"  Engineer email : {ENGINEER_EMAIL or 'not set'}")
+    print(f"  Agent ID       : {ESCALATION_AGENT_ID or 'not set'}")
+    print(f"  Company        : {COMPANY_NAME}")
+    print()
 
     sample_ticket = {
         "id"              : 2001,
         "subject"         : "Laptop screen flickering badly",
-        "description"     : "My laptop screen has been flickering since morning. Cannot work.",
+        "description"     : (
+            "My laptop screen has been flickering since morning. "
+            "Sometimes it goes blank. I think it is physical damage."
+        ),
         "requester_name"  : "Rahul Sharma",
         "requester_email" : "rahul.sharma@icici.com",
         "machine_name"    : "LAPTOP-ICICI-115",
+        "urgency_level"   : "high",
     }
 
     sample_classification = {
@@ -302,19 +818,72 @@ if __name__ == "__main__":
         "can_auto_resolve": False,
         "suggested_action": "Schedule on-site hardware inspection.",
         "confidence"      : "high",
+        "force_escalate"  : False,
     }
 
-    print("Testing basic escalation...")
+    print("--- Test 1: Basic escalation ---")
     result = escalate_ticket(
         ticket_id = sample_ticket["id"],
-        note      = "Hardware issue — cannot be auto-resolved. Needs on-site engineer."
+        note      = (
+            "Hardware issue — cannot auto-resolve. "
+            "On-site engineer required."
+        ),
     )
-    print(f"Result: {'SUCCESS' if result else 'FAILED'}\n")
+    print(f"  Result: {'SUCCESS ✓' if result else 'FAILED ✗'}\n")
 
-    print("Testing full escalation with engineer notification...")
+    print("--- Test 2: Full escalation with engineer email ---")
     result = escalate_with_full_details(
         ticket         = sample_ticket,
         classification = sample_classification,
-        reason         = "Hardware issue — physical inspection required.",
+        reason         = "Hardware issue — physical inspection needed.",
     )
-    print(f"Result: {'SUCCESS' if result else 'FAILED'}")
+    print(f"  Result: {'SUCCESS ✓' if result else 'FAILED ✗'}\n")
+
+    print("--- Test 3: High priority escalation ---")
+    urgent_classification = {
+        **sample_classification,
+        "priority": "urgent",
+    }
+    result = escalate_high_priority(
+        ticket         = sample_ticket,
+        classification = urgent_classification,
+    )
+    print(f"  Result: {'SUCCESS ✓' if result else 'FAILED ✗'}\n")
+
+    print("--- Test 4: After-hours escalation ---")
+    result = escalate_after_business_hours(
+        ticket         = sample_ticket,
+        classification = sample_classification,
+    )
+    print(f"  Result: {'SUCCESS ✓' if result else 'FAILED ✗'}\n")
+
+    print("--- Test 5: Escalation with KB guide ---")
+    result = escalate_with_kb_guide(
+        ticket         = sample_ticket,
+        classification = sample_classification,
+        kb_guide       = (
+            "Hardware Troubleshooting Guide\n"
+            "1. Check display cable connections\n"
+            "2. Update display drivers\n"
+            "3. If issue persists contact IT support"
+        ),
+        reason         = "Auto-resolve failed. KB guide sent.",
+    )
+    print(f"  Result: {'SUCCESS ✓' if result else 'FAILED ✗'}\n")
+
+    print("--- Test 6: AI summary builder ---")
+    summary = _build_ai_summary(
+        description      = sample_ticket["description"],
+        category         = sample_classification["category"],
+        confidence       = sample_classification["confidence"],
+        reason           = "Hardware needs on-site inspection.",
+        suggested_action = sample_classification["suggested_action"],
+    )
+    print(f"  Summary preview:\n")
+    for line in summary.split("\n")[:8]:
+        print(f"    {line}")
+    print()
+
+    print("=" * 60)
+    print("All escalation tests complete.")
+    print("=" * 60 + "\n")
