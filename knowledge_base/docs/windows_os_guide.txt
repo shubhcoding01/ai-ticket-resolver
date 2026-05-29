@@ -1,0 +1,54 @@
+Windows OS Troubleshooting Guide
+
+This guide covers common Windows operating system issues on ICICI Bank corporate machines.
+
+Issue: Windows Update Failing or Stuck
+
+Step 1: Open Settings, go to Update and Security, click Windows Update.
+Step 2: Click Check for updates.
+Step 3: If an update is stuck, restart your computer and try again.
+Step 4: If updates keep failing, clear the Windows Update cache:
+Open Command Prompt as Administrator.
+Type net stop wuauserv and press Enter.
+Type net stop bits and press Enter.
+Open File Explorer and go to C:\Windows\SoftwareDistribution.
+Delete all contents inside the SoftwareDistribution folder.
+Type net start wuauserv to restart the service.
+Try running Windows Update again.
+
+Issue: Blue Screen of Death (BSOD)
+
+A blue screen crash means Windows encountered a critical error.
+Note the error code shown on the blue screen if possible.
+Contact IT support with the error code and your machine name.
+Our team will check Windows Event Viewer and crash dump files remotely.
+Common causes: faulty driver, RAM issue, corrupted system files.
+
+Issue: Computer Running Slow
+
+Step 1: Press Ctrl plus Shift plus Escape to open Task Manager.
+Check which processes are using high CPU or memory.
+Step 2: Open Settings, go to Apps, Startup and disable unnecessary startup programs.
+Step 3: Run Disk Cleanup: search for Disk Cleanup in Start menu.
+Select C: drive, check all boxes, click OK, then Clean up system files.
+Step 4: Run system file checker: open Command Prompt as Administrator.
+Type sfc /scannow and press Enter. Wait for it to complete.
+Restart your computer after the scan finishes.
+
+Issue: Disk Space Full
+
+Step 1: Open File Explorer, right click C: drive and select Properties.
+Click Disk Cleanup to free up temporary files.
+Step 2: Uninstall unused applications via Control Panel, Programs.
+Step 3: Move large files like videos and downloads to a network share or external drive.
+Step 4: If disk is still full after cleanup, contact IT support.
+We will check for oversized log files and temporary data.
+
+Issue: Computer Not Starting or Black Screen
+
+Step 1: Hold the power button for 10 seconds to force shutdown.
+Step 2: Wait 30 seconds and power on again.
+Step 3: If you see a spinning circle, Windows is loading — wait up to 5 minutes.
+Step 4: If screen stays black, try pressing F8 during startup for recovery options.
+Step 5: Contact IT support if the machine still does not boot.
+Do not attempt to reinstall Windows yourself.
