@@ -1874,162 +1874,320 @@ def _build_kb_message(
     return message
 
 
-if __name__ == "__main__":
-    import sys
-    sys.path.insert(
-        0,
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    )
+# if __name__ == "__main__":
+#     import sys
+#     sys.path.insert(
+#         0,
+#         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#     )
 
+#     logging.basicConfig(
+#         level  = logging.INFO,
+#         format = "%(asctime)s [%(levelname)s] %(message)s",
+#     )
+
+#     print("\n" + "=" * 60)
+#     print("ORCHESTRATOR TEST RUN")
+#     print("=" * 60)
+#     print(
+#         f"  Mode         : "
+#         f"{'DEMO' if DEMO_MODE else 'LIVE'}"
+#     )
+#     print(
+#         f"  Dry run      : "
+#         f"{'YES' if DRY_RUN_MODE else 'NO'}"
+#     )
+#     print(f"  KB search    : {FEATURE_KB_SEARCH}")
+#     print(f"  Company      : {COMPANY_NAME}")
+#     print(f"  Agent ID     : {ESCALATION_AGENT_ID or 'not set'}")
+#     print()
+
+#     test_cases = [
+#         {
+#             "label"          : "Auto-resolvable — App Install",
+#             "ticket"         : {
+#                 "id"              : 1001,
+#                 "subject"         : "Install Zoom on my laptop",
+#                 "description"     : (
+#                     "I need Zoom installed on PC-ICICI-0042 urgently. "
+#                     "Client call in 2 hours."
+#                 ),
+#                 "requester_email" : "rahul.sharma@icici.com",
+#                 "requester_name"  : "Rahul Sharma",
+#                 "machine_name"    : "PC-ICICI-0042",
+#                 "mentioned_apps"  : ["zoom"],
+#                 "urgency_level"   : "high",
+#             },
+#             "classification" : {
+#                 "category"        : "app_install",
+#                 "priority"        : "high",
+#                 "can_auto_resolve": True,
+#                 "suggested_action": "Push Zoom installation via SCCM.",
+#                 "confidence"      : "high",
+#             },
+#         },
+#         {
+#             "label"          : "Non-auto — Hardware Issue",
+#             "ticket"         : {
+#                 "id"              : 1002,
+#                 "subject"         : "Laptop screen is flickering",
+#                 "description"     : (
+#                     "My laptop screen has been flickering since morning. "
+#                     "I think it might be physical damage."
+#                 ),
+#                 "requester_email" : "priya.mehta@icici.com",
+#                 "requester_name"  : "Priya Mehta",
+#                 "machine_name"    : "LAPTOP-ICICI-115",
+#                 "mentioned_apps"  : [],
+#                 "urgency_level"   : "medium",
+#             },
+#             "classification" : {
+#                 "category"        : "hardware",
+#                 "priority"        : "medium",
+#                 "can_auto_resolve": False,
+#                 "suggested_action": "Schedule on-site hardware inspection.",
+#                 "confidence"      : "high",
+#             },
+#         },
+#         {
+#             "label"          : "Non-auto — VPN (KB guide expected)",
+#             "ticket"         : {
+#                 "id"              : 1003,
+#                 "subject"         : "Cannot connect to VPN from home",
+#                 "description"     : (
+#                     "I cannot connect to VPN. Cisco AnyConnect shows "
+#                     "connection timed out. Please help."
+#                 ),
+#                 "requester_email" : "amit.patel@icici.com",
+#                 "requester_name"  : "Amit Patel",
+#                 "machine_name"    : "LAPTOP-ICICI-088",
+#                 "mentioned_apps"  : ["anyconnect"],
+#                 "urgency_level"   : "high",
+#             },
+#             "classification" : {
+#                 "category"        : "network",
+#                 "priority"        : "high",
+#                 "can_auto_resolve": False,
+#                 "suggested_action": "Check VPN config and escalate.",
+#                 "confidence"      : "high",
+#             },
+#         },
+#         {
+#             "label"          : "Validation fail — Missing email",
+#             "ticket"         : {
+#                 "id"              : 1004,
+#                 "subject"         : "Cannot print documents",
+#                 "description"     : "Printer is showing offline.",
+#                 "requester_email" : "",
+#                 "requester_name"  : "Unknown",
+#                 "machine_name"    : "PC-ICICI-0099",
+#                 "mentioned_apps"  : [],
+#                 "urgency_level"   : "low",
+#             },
+#             "classification" : {
+#                 "category"        : "printer",
+#                 "priority"        : "low",
+#                 "can_auto_resolve": True,
+#                 "suggested_action": "Restart print spooler remotely.",
+#                 "confidence"      : "medium",
+#             },
+#         },
+#     ]
+
+#     resolved_count  = 0
+#     escalated_count = 0
+
+#     for tc in test_cases:
+#         print(f"\n--- Test: {tc['label']} ---")
+#         print(
+#             f"  Ticket  : "
+#             f"#{tc['ticket']['id']} — {tc['ticket']['subject']}"
+#         )
+#         print(
+#             f"  Category: "
+#             f"{tc['classification']['category']}"
+#         )
+#         print(
+#             f"  Auto    : "
+#             f"{tc['classification']['can_auto_resolve']}"
+#         )
+
+#         result = orchestrate(tc["ticket"], tc["classification"])
+
+#         outcome = "RESOLVED ✓" if result else "ESCALATED →"
+#         print(f"  Result  : {outcome}")
+#         print("-" * 55)
+
+#         if result:
+#             resolved_count += 1
+#         else:
+#             escalated_count += 1
+
+#     print(f"\n{'=' * 60}")
+#     print("ORCHESTRATOR TEST SUMMARY")
+#     print(f"{'=' * 60}")
+#     total = len(test_cases)
+#     print(f"  Total    : {total}")
+#     print(f"  Resolved : {resolved_count}")
+#     print(f"  Escalated: {escalated_count}")
+#     rate = round(resolved_count / total * 100, 1)
+#     print(f"  Rate     : {rate}%")
+#     print(f"{'=' * 60}\n")
+
+
+if __name__ == "__main__":
     logging.basicConfig(
         level  = logging.INFO,
         format = "%(asctime)s [%(levelname)s] %(message)s",
     )
 
-    print("\n" + "=" * 60)
-    print("ORCHESTRATOR TEST RUN")
-    print("=" * 60)
+    print("\n" + "=" * 65)
+    print("CATEGORY RULES CLASSIFIER — TEST RUN")
+    print("=" * 65)
     print(
-        f"  Mode         : "
+        f"  Mode             : "
         f"{'DEMO' if DEMO_MODE else 'LIVE'}"
     )
+    print(f"  Business hours   : "
+          f"{BUSINESS_HOURS_START}:00 – "
+          f"{BUSINESS_HOURS_END}:00 IST")
     print(
-        f"  Dry run      : "
-        f"{'YES' if DRY_RUN_MODE else 'NO'}"
+        f"  Currently after hours: "
+        f"{_is_after_business_hours()}"
     )
-    print(f"  KB search    : {FEATURE_KB_SEARCH}")
-    print(f"  Company      : {COMPANY_NAME}")
-    print(f"  Agent ID     : {ESCALATION_AGENT_ID or 'not set'}")
+    print(
+        f"  UTC now          : "
+        f"{datetime.now(timezone.utc).strftime('%d %b %Y %H:%M UTC')}"
+    )
     print()
 
-    test_cases = [
+    test_tickets = [
         {
-            "label"          : "Auto-resolvable — App Install",
-            "ticket"         : {
-                "id"              : 1001,
-                "subject"         : "Install Zoom on my laptop",
-                "description"     : (
-                    "I need Zoom installed on PC-ICICI-0042 urgently. "
-                    "Client call in 2 hours."
-                ),
-                "requester_email" : "rahul.sharma@icici.com",
-                "requester_name"  : "Rahul Sharma",
-                "machine_name"    : "PC-ICICI-0042",
-                "mentioned_apps"  : ["zoom"],
-                "urgency_level"   : "high",
-            },
-            "classification" : {
-                "category"        : "app_install",
-                "priority"        : "high",
-                "can_auto_resolve": True,
-                "suggested_action": "Push Zoom installation via SCCM.",
-                "confidence"      : "high",
-            },
+            "label"      : "App install — Zoom",
+            "subject"    : "Please install Zoom on my laptop urgently",
+            "description": (
+                "Hi team, I need Zoom installed on PC-ICICI-0042. "
+                "I have a client call in 2 hours. Please help asap."
+            ),
         },
         {
-            "label"          : "Non-auto — Hardware Issue",
-            "ticket"         : {
-                "id"              : 1002,
-                "subject"         : "Laptop screen is flickering",
-                "description"     : (
-                    "My laptop screen has been flickering since morning. "
-                    "I think it might be physical damage."
-                ),
-                "requester_email" : "priya.mehta@icici.com",
-                "requester_name"  : "Priya Mehta",
-                "machine_name"    : "LAPTOP-ICICI-115",
-                "mentioned_apps"  : [],
-                "urgency_level"   : "medium",
-            },
-            "classification" : {
-                "category"        : "hardware",
-                "priority"        : "medium",
-                "can_auto_resolve": False,
-                "suggested_action": "Schedule on-site hardware inspection.",
-                "confidence"      : "high",
-            },
+            "label"      : "Antivirus — Symantec update",
+            "subject"    : "Symantec antivirus showing red error",
+            "description": (
+                "My Symantec antivirus is showing a red warning. "
+                "Virus definitions are out of date. "
+                "Machine: LAPTOP-ICICI-115"
+            ),
         },
         {
-            "label"          : "Non-auto — VPN (KB guide expected)",
-            "ticket"         : {
-                "id"              : 1003,
-                "subject"         : "Cannot connect to VPN from home",
-                "description"     : (
-                    "I cannot connect to VPN. Cisco AnyConnect shows "
-                    "connection timed out. Please help."
-                ),
-                "requester_email" : "amit.patel@icici.com",
-                "requester_name"  : "Amit Patel",
-                "machine_name"    : "LAPTOP-ICICI-088",
-                "mentioned_apps"  : ["anyconnect"],
-                "urgency_level"   : "high",
-            },
-            "classification" : {
-                "category"        : "network",
-                "priority"        : "high",
-                "can_auto_resolve": False,
-                "suggested_action": "Check VPN config and escalate.",
-                "confidence"      : "high",
-            },
+            "label"      : "Password reset",
+            "subject"    : "Cannot login — account locked out",
+            "description": (
+                "I forgot my password and my account is locked. "
+                "I tried 5 times. Please reset — I cannot work."
+            ),
         },
         {
-            "label"          : "Validation fail — Missing email",
-            "ticket"         : {
-                "id"              : 1004,
-                "subject"         : "Cannot print documents",
-                "description"     : "Printer is showing offline.",
-                "requester_email" : "",
-                "requester_name"  : "Unknown",
-                "machine_name"    : "PC-ICICI-0099",
-                "mentioned_apps"  : [],
-                "urgency_level"   : "low",
-            },
-            "classification" : {
-                "category"        : "printer",
-                "priority"        : "low",
-                "can_auto_resolve": True,
-                "suggested_action": "Restart print spooler remotely.",
-                "confidence"      : "medium",
-            },
+            "label"      : "Network — VPN issue",
+            "subject"    : "VPN not connecting from home",
+            "description": (
+                "Since morning I am unable to connect to VPN. "
+                "Cisco AnyConnect shows connection timed out."
+            ),
+        },
+        {
+            "label"      : "Hardware issue",
+            "subject"    : "Laptop screen is flickering badly",
+            "description": (
+                "My laptop screen has been flickering since morning. "
+                "I think the display is physically damaged."
+            ),
+        },
+        {
+            "label"      : "OS issue — BSOD",
+            "subject"    : "Blue screen of death — Windows crashing",
+            "description": (
+                "My computer is getting blue screen repeatedly. "
+                "It crashes and restarts every 30 minutes."
+            ),
+        },
+        {
+            "label"      : "Email — Outlook",
+            "subject"    : "Outlook not opening this morning",
+            "description": (
+                "Outlook shows a corrupt PST file error. "
+                "I cannot send or receive emails. Very urgent."
+            ),
+        },
+        {
+            "label"      : "Security — Force escalation",
+            "subject"    : "Ransomware detected on my computer",
+            "description": (
+                "Files are being encrypted. I see a ransom note. "
+                "This is a data breach emergency."
+            ),
+        },
+        {
+            "label"      : "Low priority — no rush",
+            "subject"    : "Minor display issue — no rush",
+            "description": (
+                "When possible, can you look at my taskbar font? "
+                "Not urgent at all. Whenever you get a chance."
+            ),
+        },
+        {
+            "label"      : "Printer offline",
+            "subject"    : "Printer offline — cannot print",
+            "description": (
+                "My printer is showing as offline. "
+                "Print queue is stuck. Machine: WS-ICICI-201."
+            ),
         },
     ]
 
-    resolved_count  = 0
-    escalated_count = 0
+    print(
+        f"{'#':<4} "
+        f"{'LABEL':<30} "
+        f"{'CATEGORY':<20} "
+        f"{'PRI':<10} "
+        f"{'AUTO':<7} "
+        f"{'CONF':<8} "
+        f"{'ESCALATE'}"
+    )
+    print("-" * 95)
 
-    for tc in test_cases:
-        print(f"\n--- Test: {tc['label']} ---")
-        print(
-            f"  Ticket  : "
-            f"#{tc['ticket']['id']} — {tc['ticket']['subject']}"
+    for i, t in enumerate(test_tickets, start=1):
+        result = classify_by_rules(
+            t["subject"], t["description"]
         )
         print(
-            f"  Category: "
-            f"{tc['classification']['category']}"
+            f"{i:<4} "
+            f"{t['label']:<30} "
+            f"{result['category']:<20} "
+            f"{result['priority']:<10} "
+            f"{str(result['can_auto_resolve']):<7} "
+            f"{result['confidence']:<8} "
+            f"{str(result['force_escalate'])}"
         )
-        print(
-            f"  Auto    : "
-            f"{tc['classification']['can_auto_resolve']}"
-        )
 
-        result = orchestrate(tc["ticket"], tc["classification"])
+    print("\n" + "-" * 65)
+    print("Auto-resolvable categories:")
+    for cat in get_auto_resolvable_categories():
+        print(f"  {cat}")
 
-        outcome = "RESOLVED ✓" if result else "ESCALATED →"
-        print(f"  Result  : {outcome}")
-        print("-" * 55)
+    print("\nAll categories:")
+    for cat in get_all_categories():
+        print(f"  {cat}")
 
-        if result:
-            resolved_count += 1
-        else:
-            escalated_count += 1
+    print("\nKeywords for 'app_install':")
+    kw = get_category_keywords("app_install")
+    print(f"  Keywords : {len(kw['keywords'])} defined")
+    print(f"  Phrases  : {len(kw['phrases'])} defined")
 
-    print(f"\n{'=' * 60}")
-    print("ORCHESTRATOR TEST SUMMARY")
-    print(f"{'=' * 60}")
-    total = len(test_cases)
-    print(f"  Total    : {total}")
-    print(f"  Resolved : {resolved_count}")
-    print(f"  Escalated: {escalated_count}")
-    rate = round(resolved_count / total * 100, 1)
-    print(f"  Rate     : {rate}%")
-    print(f"{'=' * 60}\n")
+    print("\nEscalation triggers:")
+    for trigger in ESCALATION_TRIGGERS:
+        print(f"  {trigger}")
+
+    print("\n" + "=" * 65)
+    print("All tests complete.")
+    print("=" * 65 + "\n")
