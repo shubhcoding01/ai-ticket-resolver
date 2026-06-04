@@ -1206,3 +1206,4 @@ def _render_footer(stats: dict) -> None:
 
 if __name__ == "__main__":
     main()
+    
